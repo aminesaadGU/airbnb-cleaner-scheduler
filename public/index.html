@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Airbnb Cleaner Scheduler — MVP</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;margin:20px}
+    input,button,select{padding:8px;margin:6px 0}
+    .col{display:inline-block;vertical-align:top;width:45%;margin-right:4%}
+  </style>
+</head>
+<body>
+  <h1>Airbnb Cleaner Scheduler (MVP)</h1>
+  <div class="col">
+    <h2>Register Cleaner</h2>
+    <form id="cleaner-form">
+      <input id="cleaner-id" placeholder="id" required /> <br />
+      <input id="cleaner-name" placeholder="name" required /> <br />
+      <input id="cleaner-zones" placeholder="zones (comma)" /> <br />
+      <button type="submit">Register</button>
+    </form>
+    <h3>Cleaners</h3>
+    <ul id="cleaner-list"></ul>
+  </div>
+
+  <div class="col">
+    <h2>Create Booking</h2>
+    <form id="booking-form">
+      <input id="booking-id" placeholder="booking id" required /> <br />
+      <input id="booking-listing" placeholder="listing" required /> <br />
+      <input id="booking-start" type="date" required /> <br />
+      <input id="booking-end" type="date" required /> <br />
+      <input id="booking-zone" placeholder="zone" /> <br />
+      <button type="submit">Create Booking</button>
+    </form>
+    <h3>Bookings</h3>
+    <ul id="booking-list"></ul>
+  </div>
+
+  <script>
+    const api = (path, opts={}) => fetch(path, opts).then(r=>r.json());
+
+    async function load() {
+      const cleaners = await api('/api/cleaners');
+      const bookings = await api('/api/bookings');
+      const cl = document.getElementById('cleaner-list'); cl.innerHTML = '';
+      cleaners.forEach(c=> cl.appendChild(Object.assign(document.createElement('li'),{textContent: `${c.id} — ${c.name} — zones: ${c.zones.join(',')}`})));
+      const bl = document.getElementById('booking-list'); bl.innerHTML = '';
+      bookings.forEach(b=> bl.appendChild(Object.assign(document.createElement('li'),{textContent: `${b.id} — ${b.listing} — ${b.startDate} — ${b.status} — cleaner:${b.assignedCleaner || 'none'}`})));
+    }
+
+    document.getElementById('cleaner-form').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const zones = document.getElementById('cleaner-zones').value.split(',').map(s=>s.trim()).filter(Boolean);
+      await api('/api/cleaners',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:document.getElementById('cleaner-id').value,name:document.getElementById('cleaner-name').value,zones})});
+      load();
+    });
+
+    document.getElementById('booking-form').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const id = document.getElementById('booking-id').value;
+      const listing = document.getElementById('booking-listing').value;
+      const start = document.getElementById('booking-start').value;
+      const end = document.getElementById('booking-end').value;
+      const zone = document.getElementById('booking-zone').value || 'default';
+      await api('/api/bookings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,listing,startDate:start+'T00:00:00',endDate:end+'T00:00:00',zone})});
+      load();
+    });
+
+    load();
+  </script>
+</body>
+</html>
